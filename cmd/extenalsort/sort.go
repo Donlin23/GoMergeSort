@@ -11,11 +11,12 @@ import (
 	"GoMergeSort/pipeline"
 	"bufio"
 	"fmt"
+	"strconv"
 )
 
 func main() {
-	p := createPipeline(
-		"lager.in", 800000000, 100)
+	p := createNetworkPipeline(
+		"lager.in", 800000000, 4)
 	writeToFile(p, "lager.out" )
 	printFile("lager.out")
 }
@@ -80,7 +81,43 @@ func createPipeline(fileName string,
 		source := pipeline.ReaderSource(
 			bufio.NewReader(file), chunkSize)
 
-		sortResults = append(sortResults, pipeline.InMemSort(source))
+		sortResults = append(
+			sortResults, pipeline.InMemSort(source))
+	}
+	return pipeline.MergeN(sortResults...)
+
+}
+/**
+	Reading from network in "chunkCount" chunks
+ */
+func createNetworkPipeline(fileName string,
+	fileSize, chunkCount int) <-chan int{
+
+	chunkSize := fileSize / chunkCount 	//chunkCount means we will divides into "chunkCount" chunks
+	pipeline.Init() // Init a startTime to log
+
+	sortAddr := []string{}
+	for i := 0; i < chunkCount; i++{
+		file, err := os.Open(fileName)
+		if err != nil {
+			panic(err)
+		}
+
+		file.Seek(int64(i*chunkSize), 0)
+
+		source := pipeline.ReaderSource(
+			bufio.NewReader(file), chunkSize)
+
+		addr := ":" + strconv.Itoa(7000 + i)
+		pipeline.NetworkSink(
+			addr, pipeline.InMemSort(source))
+		sortAddr = append(sortAddr, addr)
+	}
+
+	sortResults := []<-chan int{}
+	for _, addr := range sortAddr  {
+		sortResults = append(
+			sortResults, pipeline.NetworkSource(addr))
 	}
 	return pipeline.MergeN(sortResults...)
 
