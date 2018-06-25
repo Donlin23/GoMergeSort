@@ -36,7 +36,7 @@ func ArraySource(a ...int) <-chan int{ 	// "<-chan" for the goroutine which rece
 }
 
 /**
-	Use build-in sort in memory
+	Use build-in sort in memory, pull data in memory and sort it, push the sorted result into a new channel(int) out
  */
 func InMemSort(in <-chan int) <-chan int{
 	out := make(chan int, 1024)
@@ -88,7 +88,7 @@ func Merge(in1, in2 <-chan int) <-chan int{
 }
 
 /**
-	We can read from a instance which implements io.Reader interface
+	We can read from a instance which implements io.Reader interface, push data into a channel(int) out
  */
 func ReaderSource(
 	reader io.Reader, chunkSize int) <-chan int{
